@@ -278,6 +278,7 @@ void* recv_thread(void* p){
 			x[atoi(&buf[1])] = le2;
 			if(iswin(le2))
 			{
+				print();
 				printf("[You lose!]\n\n");
 				Game = 0;
 			}
