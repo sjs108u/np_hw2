@@ -20,12 +20,12 @@ void getAlluser(int);
 void* service_thread(void*);
 
 int main(){
+	struct sockaddr_in addr;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1){
 		perror("Create socket Failed");
 		exit(-1);
 	}
-	struct sockaddr_in addr;
 	
 	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(int));
 	
@@ -33,11 +33,11 @@ int main(){
 	addr.sin_port = htons(8080);
 	addr.sin_addr.s_addr=htonl(INADDR_ANY);
 	
-
 	if (bind(sockfd, (SA*)&addr, sizeof(addr)) == -1){
 		perror("Bind Failed");
 		exit(-1);
 	}
+	
 	if (listen(sockfd, 100) == -1){
 		perror("Listen Failed");
 		exit(-1);
@@ -60,8 +60,8 @@ int main(){
 				pthread_create(&tid, 0, service_thread, &fd);
 				break;
 			}
-			if (size == i){
-				char* str = "Sorry, the room is full!";
+			else if (i == size - 1 && fds[size - 1] != 0){
+				char* str = "the room is full!Try again later.";
 				send(fd, str, strlen(str), 0);
 				close(fd);
 			}
@@ -73,12 +73,19 @@ int main(){
 
 int check(char* buf)
 {
-	FILE *fp;
 	char tmp1[100];
-	fp = fopen("password.txt", "r");
-	while(fscanf(fp, "%s", tmp1)!=EOF)
+	FILE* fp = fopen("password.txt", "r");
+	if(fp == NULL){
+		printf("password.txt not found!\n");
+		exit(1);
+	}
+	
+	//while(fscanf(fp, "%s", tmp1) != EOF)
+	while(fgets(tmp1, 100, fp) != NULL)
 	{
-		if(strcmp(tmp1, buf)==0){
+		char* p = strstr(tmp1, "\n");
+		*p = '\0';
+		if(strcmp(tmp1, buf) == 0){
 			fclose(fp);
 			return 1;
 		}

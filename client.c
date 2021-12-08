@@ -8,12 +8,13 @@
 #include <string.h>
 
 int sockfd, filefd, Game=0, myturn=0, oppofd;
-char account[30],passwd[30],name[30];
-char opponame[100],x[9],le1='O',le2='X';
+char account[30], passwd[30], name[30];
+char opponame[100], x[9], le1='O', le2='X';
 
 typedef struct sockaddr SA;
 
 int iswin(char);
+int isfair();
 void print();
 void start();
 void* recv_thread(void*);
@@ -40,6 +41,10 @@ int main(int argc, char** argv){
 		scanf("%s", newPassword);
 		
 		FILE* fp = fopen("password.txt", "r+");
+		if(fp == NULL){
+			printf("password.txt not found!\n");
+			exit(1);
+		}
 		
 		fseek(fp, 0, SEEK_END);
 		fprintf(fp, "%s:%s\n", newName, newPassword);
@@ -57,21 +62,32 @@ int main(int argc, char** argv){
 	scanf("%s", passwd);
 	
 	sprintf(name, "%s:%s@", account, passwd);
+	
 	start();
+	
 	return 0;
 }
 
 int iswin(char le){
-	if(x[0]==le&&x[1]==le&&x[2]==le)return 1;
-	if(x[3]==le&&x[4]==le&&x[5]==le)return 1;
-	if(x[6]==le&&x[7]==le&&x[8]==le)return 1;
-	if(x[0]==le&&x[3]==le&&x[6]==le)return 1;
-	if(x[1]==le&&x[4]==le&&x[7]==le)return 1;
-	if(x[2]==le&&x[5]==le&&x[8]==le)return 1;
-	if(x[0]==le&&x[4]==le&&x[8]==le)return 1;
-	if(x[2]==le&&x[4]==le&&x[6]==le)return 1;
+	if(x[0] == le && x[1] == le && x[2] == le)
+		return 1;
+	if(x[3] == le && x[4] == le && x[5] == le)
+		return 1;
+	if(x[6] == le && x[7] == le && x[8] == le)
+		return 1;
+	if(x[0] == le && x[3] == le && x[6] == le)
+		return 1;
+	if(x[1] == le && x[4] == le && x[7] == le)
+		return 1;
+	if(x[2] == le && x[5] == le && x[8] == le)
+		return 1;
+	if(x[0] == le && x[4] == le && x[8] == le)
+		return 1;
+	if(x[2] == le && x[5] == le && x[6] == le)
+		return 1;
 	return 0;
 }
+
 void print(){
 	printf("%c|%c|%c\n", x[0], x[1], x[2]);
 	printf("------\n");
@@ -79,6 +95,7 @@ void print(){
 	printf("------\n");
 	printf("%c|%c|%c\n", x[6], x[7], x[8]);
 }
+
 int isfair(){
 	for(int i = 0 ; i < 9 ; i++)
 		if(x[i] == ' ')
@@ -87,7 +104,6 @@ int isfair(){
 }
 
 void start(){
-
 	char buf2[100] = {};
 	while(1){
 		recv(sockfd, buf2, sizeof(buf2), 0);
@@ -96,12 +112,14 @@ void start(){
 			break;
 		}
 	}
+	
 	pthread_t id;
-	void* recv_thread(void*);
 	pthread_create(&id, 0, recv_thread, 0);
+	
 	char *ptr;
-	ptr=strstr(name, ":");
+	ptr = strstr(name, ":");
 	*ptr = '\0';
+	
 	int f = 1;
 	while(1){
 		char buf[100] = {};
@@ -115,8 +133,10 @@ void start(){
 		}
 		if(Game == 1)
 			f = 0;
+		
 		char *ptr = strstr(buf, "\n");
 		*ptr = '\0';
+		
 		char msg[131] = {};
 		if (strcmp(buf, "bye") == 0){
 			memset(buf2, 0, sizeof(buf2));
@@ -151,16 +171,20 @@ void start(){
 					x[n] = le1;
 					printf("----------\n");
 					print();
+					
 					if(iswin(le1)){
 						printf("[You win!]\n\n");
 						Game=0;
 					}
 					else if(isfair()){
-						printf("[Fair]\n\n");
+						printf("[Fair!]\n\n");
 						Game = 0;
 					}
-					else printf("\nWait for your opponent....\n");
+					else
+						printf("\nWait for your opponent....\n");
+					
 					myturn = 0;
+					
 					sprintf(msg, "#%d %d", n, oppofd);
 					send(sockfd, msg, strlen(msg), 0);
 				}
@@ -169,12 +193,15 @@ void start(){
 		else if(strcmp(buf, "yes") == 0){
 			sprintf(buf,"AGREE %d",oppofd);
 			send(sockfd,buf,strlen(buf),0);
+			
 			printf("Game Start!\n");
 			for(int i = 0 ; i < 9 ; i++)
 				x[i]=' ';
+			
 			le1 = 'O';
 			le2 = 'X';
 			Game = 1;
+			
 			if(le1 == 'O')
 				myturn=1;
 			else
@@ -237,21 +264,25 @@ void* recv_thread(void* p){
 		else if(strncmp(buf, "CONNECT ", 8) == 0){
 			ptr=strstr(buf, " ");
 			ptr++;
+			strcpy(opponame, ptr);
+			
 			qtr = strstr(ptr, " ");
 			*qtr = '\0';
-			strcpy(opponame, ptr);
+			
 			qtr++;
 			oppofd = atoi(qtr);
 			printf("Do you want to start a new game with [%s] ?(enter yes or just ignore it.)\n",opponame);
 		}
 		else if(strncmp(buf, "AGREE ", 6) == 0){
-			ptr=strstr(buf, " ");
+			ptr = strstr(buf, " ");
 			ptr++;
-			qtr=strstr(ptr, " ");
-			*qtr = '\0';
 			strcpy(opponame, ptr);
+			
+			qtr = strstr(ptr, " ");
+			*qtr = '\0';
 			qtr++;
 			oppofd = atoi(qtr);
+			
 			printf("%s agree with you.\n", opponame);
 			printf("Game Start!\n");
 			
