@@ -1,6 +1,6 @@
 # NP_hw2
 ### 題目要求
-下OX棋的網路程式
+下OOXX棋的網路程式
 請設計一對client--server的OX棋下棋程式，具有下列幾個特性：
 
 1. 允許多個client同時登錄至server。
